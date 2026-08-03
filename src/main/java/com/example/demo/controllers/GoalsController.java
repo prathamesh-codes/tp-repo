@@ -73,8 +73,15 @@ public class GoalsController {
 	}
 	
 	@GetMapping("/get")
-	public List<GoalResponseDTO> gatAllGoals(){
-		return this.gs.getAllGoals();
+	public List<GoalResponseDTO> gatAllGoals(HttpServletRequest req) {
+		Integer id = (Integer) req.getAttribute("id");
+		return this.gs.getAllGoals(id);
+	}
+
+	@PutMapping("/updateStatus/{goalId}")
+	public GoalResponseDTO updateGoalStatusToCompleted(@PathVariable int goalId, HttpServletRequest req) {
+		Integer id = (Integer) req.getAttribute("id");
+		return this.gs.updateGoalStatusToCompleted(goalId, id);	
 	}
 
 }

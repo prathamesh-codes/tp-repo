@@ -532,7 +532,45 @@ function catLabel(c){
 function statusBadgeClass(s){
   if(s === "ACTIVE") return "badge-green";
   if(s === "COMPLETED") return "badge-gold";
+  if(s === "EXPIRED") return "badge-brick";
   return "badge-neutral";
+}
+
+/**
+ * A goal is considered expired on the frontend if its target date has
+ * already passed and it hasn't already been completed. This is purely
+ * a display concern — it doesn't mutate the goal or call the backend.
+ */
+function isPastTargetDate(g){
+  if(!g || !g.targetDate) return false;
+  const target = new Date(g.targetDate);
+  if(isNaN(target.getTime())) return false;
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  target.setHours(0,0,0,0);
+  return target < today;
+}
+
+function effectiveGoalStatus(g){
+  if(g && g.goalStatus !== "COMPLETED" && isPastTargetDate(g)) return "EXPIRED";
+  return g ? g.goalStatus : undefined;
+}
+
+/**
+ * True when the given goal belongs to the currently signed-in user.
+ * Goals returned by the API include the owner's email (and name); we
+ * compare against the locally stored identity from login/signup.
+ */
+function isOwnGoal(g){
+  const ident = getIdentity();
+  if(!ident || !g) return false;
+  if(g.email && ident.email){
+    return String(g.email).toLowerCase() === String(ident.email).toLowerCase();
+  }
+  if(g.userId !== undefined && ident.userId !== undefined){
+    return g.userId === ident.userId;
+  }
+  return false;
 }
 function fmtDate(d){
   if(!d) return "—";
@@ -1007,7 +1045,7 @@ function goalListCard(title, goals, emptyMsg, seeAllHref){
           <div style="font-weight:600; font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(g.title)}</div>
           <div class="hint">${catLabel(g.catagory)}</div>
         </div>
-        <span class="badge ${statusBadgeClass(g.goalStatus)}">${esc(g.goalStatus)}</span>
+        <span class="badge ${statusBadgeClass(effectiveGoalStatus(g))}">${esc(effectiveGoalStatus(g))}</span>
       </div>
     </div>`);
     row.style.borderTop = "1px solid var(--line-soft)";
@@ -1022,7 +1060,9 @@ function goalListCard(title, goals, emptyMsg, seeAllHref){
    VIEW: EXPLORE GOALS
    ============================================================ */
 route("/goals", async (params, shell)=>{
-  const goals = await api("/goals/get");
+  const allGoals = await api("/goals/get");
+  // Check 1: users should never see their own goals on the Explore page.
+  const goals = allGoals.filter(g=> !isOwnGoal(g));
   state.goalsCache = goals;
 
   const root = h(`<div></div>`);
@@ -1072,6 +1112,7 @@ route("/goals", async (params, shell)=>{
 });
 
 function goalCard(g){
+  const status = effectiveGoalStatus(g);
   const card = h(`<div class="card goal-card">
     <div class="goal-cat">${catLabel(g.catagory)}</div>
     <div class="goal-title">${esc(g.title)}</div>
@@ -1082,7 +1123,7 @@ function goalCard(g){
         <div class="owner-dot">${esc(initials(g.name))}</div>
         <span>${esc(g.name || "Unknown")}</span>
       </div>
-      <span class="badge ${statusBadgeClass(g.goalStatus)}">${esc(g.goalStatus)}</span>
+      <span class="badge ${statusBadgeClass(status)}">${esc(status)}</span>
     </div>
   </div>`);
   card.addEventListener("click", ()=> navigate("#/goal/"+g.id));
@@ -1106,6 +1147,8 @@ route("/goal/:id", async (params, shell)=>{
   const goal = goalRes.value;
   const prog = progress.status === "fulfilled" ? progress.value : null;
   const contribs = contributors.status === "fulfilled" ? contributors.value : [];
+  const goalStatus = effectiveGoalStatus(goal);
+  const isOwn = isOwnGoal(goal);
 
   const root = h(`<div></div>`);
   root.appendChild(h(`<div class="back-link" id="backLink">${iconArrowLeft} Back to goals</div>`));
@@ -1117,7 +1160,7 @@ route("/goal/:id", async (params, shell)=>{
         <div class="goal-cat">${catLabel(goal.catagory)}</div>
         <div class="detail-title">${esc(goal.title)}</div>
       </div>
-      <span class="badge ${statusBadgeClass(goal.goalStatus)}" style="font-size:12px; padding:5px 12px;">${esc(goal.goalStatus)}</span>
+      <span class="badge ${statusBadgeClass(goalStatus)}" style="font-size:12px; padding:5px 12px;">${esc(goalStatus)}</span>
     </div>
     <div class="detail-desc">${esc(goal.description || "No description provided.")}</div>
     ${gaugeHtml(goal.currentAmount, goal.targetAmount)}
@@ -1130,12 +1173,19 @@ route("/goal/:id", async (params, shell)=>{
     <div class="divider"></div>
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
       <div class="goal-owner"><div class="owner-dot">${esc(initials(goal.name))}</div><span>Organized by <b>${esc(goal.name||"—")}</b> · ${esc(goal.email||"")}</span></div>
-      <button class="btn btn-primary" id="contributeBtn">${iconHeart} Contribute now</button>
+      ${isOwn
+        ? `<span class="badge badge-neutral" style="font-size:11px; padding:6px 12px;">This is your goal</span>`
+        : `<button class="btn btn-primary" id="contributeBtn">${iconHeart} Contribute now</button>`}
     </div>
   </div>`);
   root.appendChild(hero);
 
-  hero.querySelector("#contributeBtn").addEventListener("click", ()=> openContributeModal(goal, ()=> render()));
+  // Check: a user can never contribute to their own goal, so the button
+  // is only wired up (and only exists in the DOM) when it isn't their own.
+  const contributeBtn = hero.querySelector("#contributeBtn");
+  if(contributeBtn){
+    contributeBtn.addEventListener("click", ()=> openContributeModal(goal, ()=> render()));
+  }
 
   const contribCard = h(`<div class="card card-pad">
     <div class="section-title">Recent contributors</div>
@@ -1232,13 +1282,14 @@ route("/my-goals", async (params, shell)=>{
 });
 
 function myGoalCard(g){
+  const status = effectiveGoalStatus(g);
   const card = h(`<div class="card goal-card" style="cursor:default;">
     <div class="goal-cat">${catLabel(g.catagory)}</div>
     <div class="goal-title">${esc(g.title)}</div>
     <div class="goal-desc">${esc(g.description || "No description provided.")}</div>
     ${gaugeHtml(g.currentAmount, g.targetAmount)}
     <div class="goal-status-row">
-      <span class="badge ${statusBadgeClass(g.goalStatus)}">${esc(g.goalStatus)}</span>
+      <span class="badge ${statusBadgeClass(status)}">${esc(status)}</span>
       <div style="display:flex; gap:6px;">
         <button class="btn btn-outline btn-sm" data-act="view">View</button>
         <button class="btn btn-outline btn-sm" data-act="edit">${iconEdit}</button>

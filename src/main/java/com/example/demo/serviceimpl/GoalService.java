@@ -13,6 +13,7 @@ import com.example.demo.dto.request.UpdateGoalRequestDTO;
 import com.example.demo.dto.response.GoalResponseDTO;
 import com.example.demo.mappings.GoalMapper;
 import com.example.demo.models.Goal;
+import com.example.demo.models.GoalStatus;
 import com.example.demo.models.User;
 import com.example.demo.repository.GoalRepo;
 
@@ -90,15 +91,32 @@ public class GoalService {
 		return resList;
 	}
 	
-	public List<GoalResponseDTO> getAllGoals(){
+	public List<GoalResponseDTO> getAllGoals(int id){
 		List<Goal> goaList = this.gr.findAll();
 		
 		List<GoalResponseDTO> resList = new ArrayList<>();
 		
 		for(Goal goal:goaList) {
-			resList.add(GoalMapper.toGoalResponse(goal));
+			if(goal.getOwner().getId()!=id) {
+				resList.add(GoalMapper.toGoalResponse(goal));
+			}
+			// resList.add(GoalMapper.toGoalResponse(goal));
 		}
 		
 		return resList;
+	}
+
+	public GoalResponseDTO updateGoalStatusToCompleted(int goalId, int id) {
+		Goal goal = this.gr.findById(goalId).get();
+
+		if (goal.getOwner().getId() != id) {
+			throw new RuntimeException("You are not authorized to update the status of this goal.");
+		}
+		
+		goal.setGoalStatus(GoalStatus.COMPLETED);
+		
+		Goal goal1 = this.gr.save(goal);
+		
+		return GoalMapper.toGoalResponse(goal1);
 	}
 }
