@@ -1,0 +1,1550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fundwell — Crowdfunding</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================= TOKENS ============================= */
+:root{
+  --ink:#161A2C;
+  --ink-soft:#3A3F55;
+  --muted:#6B7180;
+  --paper:#EEF0F5;
+  --surface:#FFFFFF;
+  --line:#DCE0E9;
+  --line-soft:#E9EBF1;
+  --gold:#B8862F;
+  --gold-soft:#F1E3C7;
+  --green:#2F6B4F;
+  --green-soft:#DCEAE1;
+  --green-strong:#245640;
+  --brick:#AE4230;
+  --brick-soft:#F3DDD8;
+  --shadow: 0 1px 2px rgba(22,26,44,.04), 0 8px 24px -12px rgba(22,26,44,.18);
+  --radius: 10px;
+  --font-display:'Fraunces', serif;
+  --font-body:'Inter', sans-serif;
+  --font-mono:'IBM Plex Mono', monospace;
+}
+
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0;
+  font-family:var(--font-body);
+  background:var(--paper);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;}
+::selection{background:var(--gold-soft);}
+:focus-visible{outline:2px solid var(--green); outline-offset:2px;}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.001ms !important; transition-duration:.001ms !important;}
+}
+
+/* ============================= LAYOUT ============================= */
+#app{min-height:100vh;}
+
+.shell{
+  display:grid;
+  grid-template-columns:232px 1fr;
+  min-height:100vh;
+}
+@media (max-width:880px){
+  .shell{grid-template-columns:1fr;}
+  .sidebar{position:fixed; z-index:40; height:100vh; transform:translateX(-100%); transition:transform .25s ease; box-shadow:var(--shadow);}
+  .shell.nav-open .sidebar{transform:translateX(0);}
+  .nav-scrim{display:none; position:fixed; inset:0; background:rgba(20,22,35,.35); z-index:30;}
+  .shell.nav-open .nav-scrim{display:block;}
+}
+
+/* ----- Sidebar ----- */
+.sidebar{
+  background:var(--ink);
+  color:#EDEFF6;
+  padding:22px 16px;
+  display:flex;
+  flex-direction:column;
+  gap:26px;
+}
+.brand{
+  display:flex; align-items:center; gap:10px;
+  padding:2px 6px 14px 6px;
+  border-bottom:1px solid rgba(255,255,255,.1);
+}
+.brand-mark{
+  width:30px;height:30px;border-radius:8px;
+  background:linear-gradient(155deg, var(--gold) 0%, var(--green) 100%);
+  flex:none;
+  position:relative;
+}
+.brand-mark::after{
+  content:"";
+  position:absolute; left:8px; right:8px; bottom:7px; top:14px;
+  border-left:2px solid rgba(22,26,44,.55);
+  border-bottom:2px solid rgba(22,26,44,.55);
+}
+.brand-name{font-family:var(--font-display); font-size:19px; font-weight:600; letter-spacing:.2px;}
+.brand-sub{font-size:10.5px; color:#A9AEC4; letter-spacing:.14em; text-transform:uppercase; margin-top:1px;}
+
+.nav-group{display:flex; flex-direction:column; gap:2px;}
+.nav-label{font-size:10.5px; text-transform:uppercase; letter-spacing:.14em; color:#8288A0; padding:10px 10px 6px;}
+.nav-item{
+  display:flex; align-items:center; gap:11px;
+  padding:9px 10px; border-radius:8px;
+  color:#C8CCDC; font-size:13.5px; font-weight:500;
+  cursor:pointer; border:1px solid transparent;
+}
+.nav-item:hover{background:rgba(255,255,255,.06); color:#fff;}
+.nav-item.active{background:rgba(255,255,255,.1); color:#fff; border-color:rgba(255,255,255,.08);}
+.nav-item svg{flex:none; opacity:.9;}
+.nav-item .dot{width:5px;height:5px;border-radius:50%;background:var(--gold);margin-left:auto;display:none;}
+.nav-item.active .dot{display:block;}
+
+.sidebar-foot{margin-top:auto; padding-top:14px; border-top:1px solid rgba(255,255,255,.1);}
+.mini-profile{display:flex; align-items:center; gap:10px; padding:6px;}
+.avatar{
+  width:32px;height:32px;border-radius:50%;
+  background:linear-gradient(155deg, var(--gold) 0%, var(--green) 100%);
+  color:#161A2C; font-family:var(--font-display); font-weight:700; font-size:13px;
+  display:flex; align-items:center; justify-content:center; flex:none;
+}
+.mini-name{font-size:12.5px; font-weight:600; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:130px;}
+.mini-role{font-size:10.5px; color:#8288A0;}
+.logout-btn{
+  margin-top:10px; width:100%; text-align:left;
+  background:transparent; border:1px solid rgba(255,255,255,.14); color:#C8CCDC;
+  padding:8px 10px; border-radius:8px; font-size:12.5px; cursor:pointer;
+  display:flex; align-items:center; gap:8px;
+}
+.logout-btn:hover{background:rgba(255,255,255,.06); color:#fff;}
+
+/* ----- Main column ----- */
+.main{display:flex; flex-direction:column; min-height:100vh;}
+.topbar{
+  display:flex; align-items:center; gap:14px;
+  padding:16px 28px; background:var(--surface); border-bottom:1px solid var(--line);
+  position:sticky; top:0; z-index:20;
+}
+.menu-toggle{display:none; border:1px solid var(--line); background:#fff; border-radius:8px; width:34px; height:34px; cursor:pointer; align-items:center; justify-content:center;}
+@media (max-width:880px){.menu-toggle{display:flex;}}
+.page-heading{display:flex; flex-direction:column; gap:2px;}
+.page-eyebrow{font-size:11px; text-transform:uppercase; letter-spacing:.14em; color:var(--muted); font-weight:600;}
+.page-title{font-family:var(--font-display); font-size:23px; font-weight:600;}
+.topbar-spacer{flex:1;}
+.topbar-btn{
+  border:1px solid var(--line); background:#fff; color:var(--ink-soft);
+  padding:8px 14px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;
+  display:flex; align-items:center; gap:6px;
+}
+.topbar-btn:hover{border-color:var(--ink-soft);}
+.topbar-btn.primary{background:var(--green); border-color:var(--green); color:#fff;}
+.topbar-btn.primary:hover{background:var(--green-strong);}
+
+.content{padding:26px 28px 60px; flex:1; width:100%; max-width:1180px; margin:0 auto;}
+
+/* ============================= PRIMITIVES ============================= */
+.card{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:var(--shadow);
+}
+.card-pad{padding:20px;}
+
+.grid{display:grid; gap:16px;}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+.grid-2{grid-template-columns:repeat(2,1fr);}
+@media (max-width:920px){ .grid-4{grid-template-columns:repeat(2,1fr);} .grid-3{grid-template-columns:repeat(2,1fr);} }
+@media (max-width:620px){ .grid-4,.grid-3,.grid-2{grid-template-columns:1fr;} }
+
+.stat-card{padding:18px 18px 16px;}
+.stat-label{font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); font-weight:600;}
+.stat-value{font-family:var(--font-mono); font-size:26px; font-weight:600; margin-top:8px; letter-spacing:-.3px;}
+.stat-sub{font-size:12px; color:var(--muted); margin-top:4px;}
+
+.section-title{font-family:var(--font-display); font-size:18px; font-weight:600; margin:0 0 12px;}
+.section-head{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:12px; gap:10px; flex-wrap:wrap;}
+.section-head .section-title{margin:0;}
+.link-btn{font-size:12.5px; font-weight:600; color:var(--green-strong); cursor:pointer; border:none; background:none; padding:0;}
+.link-btn:hover{text-decoration:underline;}
+
+.badge{
+  display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:100px;
+  font-size:11px; font-weight:700; letter-spacing:.03em; text-transform:uppercase;
+}
+.badge-green{background:var(--green-soft); color:var(--green-strong);}
+.badge-gold{background:var(--gold-soft); color:#8A6220;}
+.badge-brick{background:var(--brick-soft); color:var(--brick);}
+.badge-neutral{background:var(--line-soft); color:var(--muted);}
+
+.pill-select{
+  display:flex; gap:6px; flex-wrap:wrap;
+}
+.pill{
+  padding:6px 12px; border-radius:100px; border:1px solid var(--line); background:#fff;
+  font-size:12.5px; font-weight:600; color:var(--ink-soft); cursor:pointer;
+}
+.pill.active{background:var(--ink); border-color:var(--ink); color:#fff;}
+
+/* Buttons */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:7px;
+  padding:10px 16px; border-radius:8px; font-size:13.5px; font-weight:600; cursor:pointer;
+  border:1px solid transparent; transition:transform .04s ease;
+}
+.btn:active{transform:scale(.98);}
+.btn-primary{background:var(--green); color:#fff;}
+.btn-primary:hover{background:var(--green-strong);}
+.btn-gold{background:var(--gold); color:#fff;}
+.btn-gold:hover{background:#96701F;}
+.btn-outline{background:#fff; border-color:var(--line); color:var(--ink-soft);}
+.btn-outline:hover{border-color:var(--ink-soft);}
+.btn-danger{background:#fff; border-color:var(--brick-soft); color:var(--brick);}
+.btn-danger:hover{background:var(--brick-soft);}
+.btn-block{width:100%;}
+.btn[disabled]{opacity:.55; cursor:not-allowed;}
+.btn-sm{padding:7px 12px; font-size:12.5px;}
+
+/* Forms */
+.field{display:flex; flex-direction:column; gap:6px; margin-bottom:14px;}
+.field label{font-size:12px; font-weight:600; color:var(--ink-soft);}
+.hint{font-size:11.5px; color:var(--muted);}
+input,select,textarea{
+  font-family:inherit; font-size:13.5px; padding:10px 12px; border-radius:8px;
+  border:1px solid var(--line); background:#fff; color:var(--ink); width:100%;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--green); outline:none; box-shadow:0 0 0 3px var(--green-soft);}
+textarea{resize:vertical; min-height:80px;}
+.field-row{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+@media (max-width:520px){.field-row{grid-template-columns:1fr;}}
+
+.form-error{
+  background:var(--brick-soft); color:var(--brick); border:1px solid #E2BCB2;
+  padding:9px 12px; border-radius:8px; font-size:12.5px; margin-bottom:14px; display:none;
+}
+.form-error.show{display:block;}
+
+/* ============================= SIGNATURE: FUNDING GAUGE ============================= */
+.gauge{margin-top:14px;}
+.gauge-top{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:7px;}
+.gauge-amount{font-family:var(--font-mono); font-size:15px; font-weight:600;}
+.gauge-amount .of{color:var(--muted); font-weight:500;}
+.gauge-pct{font-family:var(--font-mono); font-size:12px; font-weight:600; color:var(--green-strong);}
+.gauge-track{
+  position:relative; height:14px; border-radius:4px; background:var(--paper);
+  border:1px solid var(--line); overflow:hidden;
+}
+.gauge-fill{
+  position:absolute; left:0; top:0; bottom:0;
+  background:linear-gradient(90deg, var(--gold) 0%, var(--green) 100%);
+  border-radius:4px 0 0 4px;
+  transition:width .5s cubic-bezier(.2,.8,.2,1);
+}
+.gauge-fill.full{border-radius:4px;}
+.gauge-ticks{position:absolute; inset:0; display:flex; pointer-events:none;}
+.gauge-ticks span{flex:1; border-right:1px solid rgba(22,26,44,.08);}
+.gauge-ticks span:last-child{border-right:none;}
+.gauge-labels{display:flex; justify-content:space-between; margin-top:5px; font-size:10px; color:var(--muted); font-family:var(--font-mono);}
+
+/* ============================= GOAL CARD ============================= */
+.goal-card{padding:18px; display:flex; flex-direction:column; gap:2px; cursor:pointer;}
+.goal-card:hover{border-color:#B9C0D1;}
+.goal-cat{font-size:10.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--gold);}
+.goal-title{font-family:var(--font-display); font-size:17px; font-weight:600; margin:4px 0 2px; line-height:1.25;}
+.goal-desc{font-size:12.5px; color:var(--muted); line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:36px;}
+.goal-meta{display:flex; align-items:center; gap:8px; margin-top:12px; font-size:11.5px; color:var(--muted);}
+.goal-owner{display:flex; align-items:center; gap:6px;}
+.owner-dot{width:18px;height:18px;border-radius:50%; background:var(--paper); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; color:var(--ink-soft);}
+.goal-status-row{margin-top:12px; display:flex; justify-content:space-between; align-items:center;}
+
+/* ============================= EMPTY / LOADING ============================= */
+.empty-state{
+  padding:48px 24px; text-align:center; color:var(--muted);
+  display:flex; flex-direction:column; align-items:center; gap:10px;
+}
+.empty-state svg{opacity:.5;}
+.empty-title{font-family:var(--font-display); font-size:16px; color:var(--ink); font-weight:600;}
+.empty-sub{font-size:12.5px; max-width:340px;}
+
+.skeleton{background:linear-gradient(90deg, var(--line-soft) 25%, #F5F6FA 37%, var(--line-soft) 63%); background-size:400% 100%; animation:shimmer 1.4s ease infinite; border-radius:8px;}
+@keyframes shimmer{0%{background-position:100% 0;}100%{background-position:0 0;}}
+
+.loader{display:flex; align-items:center; justify-content:center; padding:60px 0; color:var(--muted); font-size:13px; gap:10px;}
+.spinner{width:16px;height:16px;border-radius:50%; border:2px solid var(--line); border-top-color:var(--green); animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ============================= AUTH SCREEN ============================= */
+.auth-wrap{
+  min-height:100vh; display:grid; grid-template-columns:1fr 1fr;
+}
+@media (max-width:840px){.auth-wrap{grid-template-columns:1fr;}}
+.auth-visual{
+  background:var(--ink); color:#fff; padding:56px; display:flex; flex-direction:column; justify-content:space-between;
+  position:relative; overflow:hidden;
+}
+@media (max-width:840px){.auth-visual{display:none;}}
+.auth-visual::before{
+  content:""; position:absolute; width:520px; height:520px; border-radius:50%;
+  background:radial-gradient(circle at 30% 30%, rgba(184,134,47,.35), transparent 60%);
+  top:-160px; right:-160px;
+}
+.auth-visual::after{
+  content:""; position:absolute; width:420px; height:420px; border-radius:50%;
+  background:radial-gradient(circle at 60% 60%, rgba(47,107,79,.4), transparent 65%);
+  bottom:-140px; left:-100px;
+}
+.auth-visual-top{position:relative; z-index:1;}
+.auth-visual-quote{position:relative; z-index:1; font-family:var(--font-display); font-size:27px; line-height:1.35; max-width:420px; font-weight:500;}
+.auth-visual-foot{position:relative; z-index:1; font-size:12px; color:#A9AEC4; display:flex; gap:26px;}
+.auth-visual-foot b{color:#fff; display:block; font-family:var(--font-mono); font-size:18px; font-weight:600;}
+
+.auth-form-side{display:flex; align-items:center; justify-content:center; padding:32px;}
+.auth-box{width:100%; max-width:380px;}
+.auth-tabs{display:flex; gap:4px; background:var(--line-soft); padding:4px; border-radius:9px; margin-bottom:26px;}
+.auth-tab{flex:1; text-align:center; padding:9px; border-radius:7px; font-size:13px; font-weight:600; color:var(--muted); cursor:pointer;}
+.auth-tab.active{background:#fff; color:var(--ink); box-shadow:var(--shadow);}
+
+/* ============================= MODAL ============================= */
+.modal-scrim{
+  position:fixed; inset:0; background:rgba(20,22,35,.45); display:none;
+  align-items:center; justify-content:center; z-index:100; padding:20px;
+}
+.modal-scrim.show{display:flex;}
+.modal{
+  background:#fff; border-radius:12px; width:100%; max-width:480px; max-height:88vh; overflow-y:auto;
+  box-shadow:0 24px 60px -12px rgba(15,17,30,.35);
+}
+.modal-head{display:flex; align-items:center; justify-content:space-between; padding:18px 22px; border-bottom:1px solid var(--line);}
+.modal-title{font-family:var(--font-display); font-size:18px; font-weight:600;}
+.modal-close{border:none; background:var(--line-soft); width:28px; height:28px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--ink-soft);}
+.modal-body{padding:20px 22px 22px;}
+
+/* ============================= TOASTS ============================= */
+.toast-stack{position:fixed; top:18px; right:18px; display:flex; flex-direction:column; gap:8px; z-index:200;}
+.toast{
+  background:var(--ink); color:#fff; padding:12px 16px; border-radius:9px; font-size:13px; font-weight:500;
+  box-shadow:0 10px 30px -10px rgba(0,0,0,.4); min-width:220px; max-width:340px;
+  display:flex; align-items:center; gap:10px; animation:toast-in .22s ease;
+}
+.toast.err{background:var(--brick);}
+.toast.ok{background:var(--green-strong);}
+@keyframes toast-in{from{opacity:0; transform:translateY(-8px);} to{opacity:1; transform:translateY(0);}}
+
+/* ============================= MISC ============================= */
+.divider{height:1px; background:var(--line); margin:20px 0;}
+.table-simple{width:100%; border-collapse:collapse; font-size:13px;}
+.table-simple th{text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); padding:0 10px 8px; font-weight:700;}
+.table-simple td{padding:11px 10px; border-top:1px solid var(--line-soft);}
+.table-simple tr:hover td{background:var(--paper);}
+.num{font-family:var(--font-mono);}
+.rank-badge{
+  width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
+  font-family:var(--font-mono); font-size:11px; font-weight:700; background:var(--paper); color:var(--ink-soft); border:1px solid var(--line);
+}
+.rank-badge.gold{background:var(--gold-soft); color:#8A6220; border-color:transparent;}
+
+.detail-hero{padding:26px; display:flex; flex-direction:column; gap:14px;}
+.detail-top{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;}
+.detail-title{font-family:var(--font-display); font-size:27px; font-weight:600; line-height:1.2;}
+.detail-desc{color:var(--ink-soft); font-size:14px; line-height:1.6; max-width:640px;}
+.kpi-row{display:flex; gap:26px; flex-wrap:wrap; margin-top:6px;}
+.kpi{display:flex; flex-direction:column; gap:2px;}
+.kpi b{font-family:var(--font-mono); font-size:19px; font-weight:600;}
+.kpi span{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em;}
+
+.back-link{display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; color:var(--muted); cursor:pointer; margin-bottom:14px;}
+.back-link:hover{color:var(--ink);}
+
+.contributor-row{display:flex; align-items:center; gap:10px; padding:10px 0; border-top:1px solid var(--line-soft);}
+.contributor-row:first-child{border-top:none;}
+
+.search-bar{position:relative; flex:1; max-width:320px;}
+.search-bar input{padding-left:34px;}
+.search-bar svg{position:absolute; left:11px; top:50%; transform:translateY(-50%); opacity:.5;}
+
+.category-bar-row{display:flex; align-items:center; gap:12px; padding:9px 0;}
+.category-bar-row .cat-name{width:110px; font-size:12.5px; font-weight:600; flex:none;}
+.category-bar-track{flex:1; height:8px; background:var(--paper); border-radius:4px; overflow:hidden; border:1px solid var(--line);}
+.category-bar-fill{height:100%; background:linear-gradient(90deg, var(--gold), var(--green)); border-radius:4px;}
+.category-bar-count{font-family:var(--font-mono); font-size:12px; color:var(--muted); width:26px; text-align:right; flex:none;}
+</style>
+</head>
+<body>
+
+<div class="toast-stack" id="toastStack"></div>
+<div id="app"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   CONFIG & STATE
+   ============================================================ */
+const API = ""; // same-origin: frontend is served by the Spring Boot app on the same port
+const TOKEN_KEY = "fw_token";
+const IDENT_KEY = "fw_identity";
+
+const CATEGORIES = ["EDUCATION","MEDICAL","TRAVEL","BUSINESS","EQUIPMENT","EMERGENCY","OTHER"];
+const STATUSES = ["ACTIVE","COMPLETED","EXPIRED"];
+
+let state = {
+  goalsCache: null,
+};
+
+function getToken(){ return localStorage.getItem(TOKEN_KEY); }
+function setToken(t){ localStorage.setItem(TOKEN_KEY, t); }
+function clearAuth(){ localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(IDENT_KEY); }
+function isAuthed(){ return !!getToken(); }
+function getIdentity(){
+  try{ return JSON.parse(localStorage.getItem(IDENT_KEY) || "null"); }catch(e){ return null; }
+}
+function setIdentity(obj){ localStorage.setItem(IDENT_KEY, JSON.stringify(obj)); }
+
+function decodeJwt(token){
+  try{
+    const payload = token.split(".")[1];
+    const json = decodeURIComponent(atob(payload.replace(/-/g,"+").replace(/_/g,"/")).split("").map(c=>
+      "%" + ("00"+c.charCodeAt(0).toString(16)).slice(-2)
+    ).join(""));
+    return JSON.parse(json);
+  }catch(e){ return null; }
+}
+
+/* ============================================================
+   API HELPER
+   ============================================================ */
+function toFormBody(obj){
+  const params = new URLSearchParams();
+  Object.keys(obj || {}).forEach(k=>{
+    if(obj[k] !== undefined && obj[k] !== null) params.append(k, obj[k]);
+  });
+  return params;
+}
+
+async function api(path, {method="GET", body=null, auth=true} = {}){
+  const headers = {};
+  if(body) headers["Content-Type"] = "application/x-www-form-urlencoded";
+  if(auth){
+    const t = getToken();
+    if(t) headers["Authorization"] = "Bearer " + t;
+  }
+
+  let res;
+  try{
+    res = await fetch(API + path, {
+      method,
+      headers,
+      body: body ? toFormBody(body) : undefined
+    });
+  }catch(networkErr){
+    throw new ApiError("Could not reach the server. Check that the backend is running.", 0);
+  }
+
+  if(res.status === 401){
+    if(auth){
+      clearAuth();
+      navigate("#/login");
+    }
+    throw new ApiError("Your session has expired. Please sign in again.", 401);
+  }
+
+  if(res.status === 204){ return null; }
+
+  let data = null;
+  const text = await res.text();
+  if(text){
+    try{ data = JSON.parse(text); }catch(e){ data = text; }
+  }
+
+  if(!res.ok){
+    let msg = "Something went wrong. Please try again.";
+    if(data && typeof data === "object"){
+      msg = data.error || data.Error || data.message || msg;
+    } else if (typeof data === "string" && data.trim()){
+      msg = data;
+    }
+    throw new ApiError(msg, res.status);
+  }
+
+  return data;
+}
+
+function ApiError(message, status){
+  this.message = message;
+  this.status = status;
+}
+ApiError.prototype = Object.create(Error.prototype);
+
+/* ============================================================
+   TOASTS
+   ============================================================ */
+function toast(message, type){
+  const stack = document.getElementById("toastStack");
+  const el = document.createElement("div");
+  el.className = "toast" + (type === "error" ? " err" : type === "success" ? " ok" : "");
+  el.textContent = message;
+  stack.appendChild(el);
+  setTimeout(()=>{
+    el.style.transition = "opacity .3s ease, transform .3s ease";
+    el.style.opacity = "0";
+    el.style.transform = "translateY(-6px)";
+    setTimeout(()=> el.remove(), 320);
+  }, 3400);
+}
+
+/* ============================================================
+   SMALL DOM HELPERS
+   ============================================================ */
+function h(html){
+  const t = document.createElement("template");
+  t.innerHTML = html.trim();
+  return t.content.firstElementChild;
+}
+function esc(str){
+  if(str === null || str === undefined) return "";
+  return String(str).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function money(n){
+  n = Number(n||0);
+  return "₹" + n.toLocaleString("en-IN");
+}
+function initials(name){
+  if(!name) return "?";
+  const parts = String(name).trim().split(/\s+/);
+  return (parts[0][0] + (parts[1] ? parts[1][0] : "")).toUpperCase();
+}
+function pct(current,target){
+  if(!target) return 0;
+  return Math.max(0, Math.min(100, Math.round((current/target)*1000)/10));
+}
+function catLabel(c){
+  return c ? c.charAt(0) + c.slice(1).toLowerCase() : "Other";
+}
+function statusBadgeClass(s){
+  if(s === "ACTIVE") return "badge-green";
+  if(s === "COMPLETED") return "badge-gold";
+  return "badge-neutral";
+}
+function fmtDate(d){
+  if(!d) return "—";
+  try{
+    return new Date(d).toLocaleDateString("en-IN", {day:"numeric", month:"short", year:"numeric"});
+  }catch(e){ return d; }
+}
+
+function gaugeHtml(current, target){
+  const p = pct(current,target);
+  return `
+    <div class="gauge">
+      <div class="gauge-top">
+        <span class="gauge-amount">${money(current)} <span class="of">of ${money(target)}</span></span>
+        <span class="gauge-pct">${p}%</span>
+      </div>
+      <div class="gauge-track">
+        <div class="gauge-fill ${p>=100?'full':''}" style="width:${p}%"></div>
+        <div class="gauge-ticks"><span></span><span></span><span></span><span></span></div>
+      </div>
+      <div class="gauge-labels"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
+    </div>`;
+}
+
+/* ============================================================
+   ICONS (inline, no external deps)
+   ============================================================ */
+const iconGrid = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>`;
+const iconCompass = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M15 9l-2 6-6 2 2-6 6-2z"/></svg>`;
+const iconFlag = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 21V4"/><path d="M5 4h13l-3 4 3 4H5"/></svg>`;
+const iconHeart = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20s-7-4.4-9.5-8.9C.7 7.8 2.6 4 6.4 4 8.7 4 10.7 5.3 12 7c1.3-1.7 3.3-3 5.6-3 3.8 0 5.7 3.8 3.9 7.1C19 15.6 12 20 12 20z"/></svg>`;
+const iconChart = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10"/><path d="M12 20V4"/><path d="M20 20v-7"/></svg>`;
+const iconUser = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6"/></svg>`;
+const iconLogout = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>`;
+const iconMenu = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>`;
+const iconPlus = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>`;
+const iconAlert = `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16.2" r=".4" fill="currentColor"/></svg>`;
+const iconSearch = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>`;
+const iconEdit = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>`;
+const iconTrash = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>`;
+const iconArrowLeft = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></svg>`;
+const iconInbox = `<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 12h4l2 3h4l2-3h4"/><path d="M5.5 5h13l1.5 7v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6l1.5-7z"/></svg>`;
+
+
+/* ============================================================
+   ROUTER
+   ============================================================ */
+const routes = {};
+function route(pattern, handler){ routes[pattern] = handler; }
+
+function navigate(hash){
+  if(location.hash === hash){ render(); }
+  else { location.hash = hash; }
+}
+
+function matchRoute(hash){
+  const path = hash.replace(/^#/, "") || "/login";
+  for(const pattern in routes){
+    const parts = pattern.split("/").filter(Boolean);
+    const segs = path.split("/").filter(Boolean);
+    if(parts.length !== segs.length) continue;
+    const params = {};
+    let ok = true;
+    for(let i=0;i<parts.length;i++){
+      if(parts[i].startsWith(":")) params[parts[i].slice(1)] = decodeURIComponent(segs[i]);
+      else if(parts[i] !== segs[i]) { ok = false; break; }
+    }
+    if(ok) return {handler: routes[pattern], params};
+  }
+  return null;
+}
+
+const PUBLIC_ROUTES = ["/login","/signup"];
+
+async function render(){
+  const path = (location.hash.replace(/^#/, "") || "/login").split("?")[0];
+  const authed = isAuthed();
+
+  if(!authed && !PUBLIC_ROUTES.includes(path)){
+    location.hash = "#/login";
+    return;
+  }
+  if(authed && PUBLIC_ROUTES.includes(path)){
+    location.hash = "#/dashboard";
+    return;
+  }
+
+  const match = matchRoute(location.hash);
+  const app = document.getElementById("app");
+
+  if(!match){
+    app.innerHTML = "";
+    app.appendChild(shellNotFound());
+    return;
+  }
+
+  if(PUBLIC_ROUTES.includes(path)){
+    app.innerHTML = "";
+    app.appendChild(await match.handler(match.params));
+    return;
+  }
+
+  // Authenticated shell
+  app.innerHTML = "";
+  const shell = buildShell(path);
+  app.appendChild(shell.root);
+  shell.content.innerHTML = `<div class="loader"><span class="spinner"></span> Loading…</div>`;
+  try{
+    const view = await match.handler(match.params, shell);
+    shell.content.innerHTML = "";
+    shell.content.appendChild(view);
+  }catch(err){
+    shell.content.innerHTML = "";
+    shell.content.appendChild(errorPanel(err));
+  }
+}
+
+window.addEventListener("hashchange", render);
+
+/* ============================================================
+   APP SHELL (sidebar + topbar) for authenticated views
+   ============================================================ */
+const NAV = [
+  {group:"Overview", items:[
+    {path:"/dashboard", label:"Dashboard", icon:iconGrid},
+  ]},
+  {group:"Campaigns", items:[
+    {path:"/goals", label:"Explore goals", icon:iconCompass},
+    {path:"/my-goals", label:"My goals", icon:iconFlag},
+    {path:"/my-contributions", label:"My contributions", icon:iconHeart},
+  ]},
+  {group:"Insights", items:[
+    {path:"/analytics", label:"Analytics", icon:iconChart},
+  ]},
+  {group:"Account", items:[
+    {path:"/profile", label:"Profile", icon:iconUser},
+  ]}
+];
+
+const PAGE_META = {
+  "/dashboard": {eyebrow:"Overview", title:"Dashboard"},
+  "/goals": {eyebrow:"Campaigns", title:"Explore goals"},
+  "/goal": {eyebrow:"Campaign", title:"Goal details"},
+  "/my-goals": {eyebrow:"Campaigns", title:"My goals"},
+  "/my-contributions": {eyebrow:"Campaigns", title:"My contributions"},
+  "/analytics": {eyebrow:"Insights", title:"Analytics"},
+  "/profile": {eyebrow:"Account", title:"Profile"},
+};
+
+function activeSection(path){
+  if(path.startsWith("/goal/")) return "/goals";
+  return path;
+}
+
+function buildShell(path){
+  const ident = getIdentity() || {};
+  const section = activeSection(path);
+  const meta = PAGE_META[path.startsWith("/goal/") ? "/goal" : path] || {eyebrow:"", title:""};
+
+  const root = h(`<div class="shell" id="shellRoot">
+    <div class="nav-scrim" id="navScrim"></div>
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark"></div>
+        <div>
+          <div class="brand-name">Fundwell</div>
+          <div class="brand-sub">Crowdfunding</div>
+        </div>
+      </div>
+      <nav id="navGroups"></nav>
+      <div class="sidebar-foot">
+        <div class="mini-profile">
+          <div class="avatar">${esc(initials(ident.name || ident.email))}</div>
+          <div>
+            <div class="mini-name">${esc(ident.name || ident.email || "Account")}</div>
+            <div class="mini-role">Signed in</div>
+          </div>
+        </div>
+        <button class="logout-btn" id="logoutBtn">${iconLogout}Sign out</button>
+      </div>
+    </aside>
+    <div class="main">
+      <header class="topbar">
+        <button class="menu-toggle" id="menuToggle">${iconMenu}</button>
+        <div class="page-heading">
+          <div class="page-eyebrow">${esc(meta.eyebrow)}</div>
+          <div class="page-title">${esc(meta.title)}</div>
+        </div>
+        <div class="topbar-spacer"></div>
+        <div id="topbarActions"></div>
+      </header>
+      <main class="content" id="pageContent"></main>
+    </div>
+  </div>`);
+
+  const navGroups = root.querySelector("#navGroups");
+  NAV.forEach(g=>{
+    const groupEl = h(`<div class="nav-group"><div class="nav-label">${esc(g.group)}</div></div>`);
+    g.items.forEach(it=>{
+      const item = h(`<div class="nav-item ${section===it.path?'active':''}" data-path="${it.path}">${it.icon}<span>${esc(it.label)}</span><span class="dot"></span></div>`);
+      item.addEventListener("click", ()=>{ navigate("#"+it.path); closeMobileNav(); });
+      groupEl.appendChild(item);
+    });
+    navGroups.appendChild(groupEl);
+  });
+
+  root.querySelector("#logoutBtn").addEventListener("click", ()=>{
+    clearAuth();
+    navigate("#/login");
+    toast("Signed out.", "success");
+  });
+
+  root.querySelector("#menuToggle").addEventListener("click", ()=>{
+    root.classList.toggle("nav-open");
+  });
+  root.querySelector("#navScrim").addEventListener("click", ()=> root.classList.remove("nav-open"));
+
+  function closeMobileNav(){ root.classList.remove("nav-open"); }
+
+  return { root, content: root.querySelector("#pageContent"), topbarActions: root.querySelector("#topbarActions") };
+}
+
+function errorPanel(err){
+  return h(`<div class="card">
+    <div class="empty-state">
+      ${iconAlert}
+      <div class="empty-title">Couldn't load this page</div>
+      <div class="empty-sub">${esc(err && err.message ? err.message : "An unexpected error occurred.")}</div>
+    </div>
+  </div>`);
+}
+
+function shellNotFound(){
+  return h(`<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;">
+    <div style="font-family:var(--font-display);font-size:28px;">Page not found</div>
+    <button class="btn btn-primary" onclick="location.hash='#/dashboard'">Go home</button>
+  </div>`);
+}
+
+/* ============================================================
+   MODAL HELPER
+   ============================================================ */
+function openModal(title, bodyEl){
+  const scrim = h(`<div class="modal-scrim show">
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-title">${esc(title)}</div>
+        <button class="modal-close" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body"></div>
+    </div>
+  </div>`);
+  scrim.querySelector(".modal-body").appendChild(bodyEl);
+  scrim.querySelector(".modal-close").addEventListener("click", close);
+  scrim.addEventListener("click", (e)=>{ if(e.target === scrim) close(); });
+  function close(){ scrim.remove(); }
+  document.body.appendChild(scrim);
+  return { close };
+}
+
+/* ============================================================
+   VIEW: LOGIN
+   ============================================================ */
+route("/login", async ()=>{
+  return authScreen("login");
+});
+route("/signup", async ()=>{
+  return authScreen("signup");
+});
+
+function authScreen(mode){
+  const root = h(`<div class="auth-wrap">
+    <div class="auth-visual">
+      <div class="auth-visual-top">
+        <div class="brand" style="border:none; padding:0;">
+          <div class="brand-mark"></div>
+          <div>
+            <div class="brand-name" style="color:#fff;">Fundwell</div>
+            <div class="brand-sub">Crowdfunding platform</div>
+          </div>
+        </div>
+      </div>
+      <div class="auth-visual-quote">Set a target, track every rupee raised, and bring people together behind a goal worth funding.</div>
+      <div class="auth-visual-foot">
+        <div><b>7</b> goal categories</div>
+        <div><b>100%</b> transparent progress</div>
+        <div><b>&lt;1s</b> to contribute</div>
+      </div>
+    </div>
+    <div class="auth-form-side">
+      <div class="auth-box">
+        <div class="auth-tabs">
+          <div class="auth-tab" data-tab="login">Sign in</div>
+          <div class="auth-tab" data-tab="signup">Create account</div>
+        </div>
+        <div id="authFormHolder"></div>
+      </div>
+    </div>
+  </div>`);
+
+  const tabs = root.querySelectorAll(".auth-tab");
+  function setMode(m){
+    tabs.forEach(t=> t.classList.toggle("active", t.dataset.tab === m));
+    const holder = root.querySelector("#authFormHolder");
+    holder.innerHTML = "";
+    holder.appendChild(m === "login" ? loginForm() : signupForm());
+    history.replaceState(null, "", "#/" + m);
+  }
+  tabs.forEach(t=> t.addEventListener("click", ()=> setMode(t.dataset.tab)));
+  setMode(mode);
+
+  return root;
+}
+
+function loginForm(){
+  const wrap = h(`<div>
+    <div class="form-error" id="loginErr"></div>
+    <form id="loginForm">
+      <div class="field">
+        <label>Email</label>
+        <input type="email" name="email" required placeholder="you@example.com" autocomplete="username">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" name="password" required placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">Sign in</button>
+    </form>
+    <p class="hint" style="margin-top:16px; text-align:center;">New to Fundwell? <a href="#/signup" style="color:var(--green-strong); font-weight:600;">Create an account</a></p>
+  </div>`);
+
+  wrap.querySelector("#loginForm").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    const errEl = wrap.querySelector("#loginErr");
+    errEl.classList.remove("show");
+    const fd = new FormData(e.target);
+    const email = fd.get("email"), password = fd.get("password");
+    const btn = e.target.querySelector("button[type=submit]");
+    btn.disabled = true; btn.textContent = "Signing in…";
+    try{
+      const data = await api("/auth/login", {method:"POST", body:{email, password}, auth:false});
+      setToken(data.token);
+      const claims = decodeJwt(data.token) || {};
+      setIdentity({ email: email, name: claims.name || email });
+      toast("Welcome back!", "success");
+      navigate("#/dashboard");
+    }catch(err){
+      errEl.textContent = err.message || "Invalid credentials";
+      errEl.classList.add("show");
+    }finally{
+      btn.disabled = false; btn.textContent = "Sign in";
+    }
+  });
+  return wrap;
+}
+
+function signupForm(){
+  const wrap = h(`<div>
+    <div class="form-error" id="signupErr"></div>
+    <form id="signupForm">
+      <div class="field">
+        <label>Full name</label>
+        <input type="text" name="name" required placeholder="Ada Lovelace" autocomplete="name">
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" name="email" required placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" name="password" required placeholder="Create a password" autocomplete="new-password">
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">Create account</button>
+    </form>
+    <p class="hint" style="margin-top:16px; text-align:center;">Already have an account? <a href="#/login" style="color:var(--green-strong); font-weight:600;">Sign in</a></p>
+  </div>`);
+
+  wrap.querySelector("#signupForm").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    const errEl = wrap.querySelector("#signupErr");
+    errEl.classList.remove("show");
+    const fd = new FormData(e.target);
+    const name = fd.get("name"), email = fd.get("email"), password = fd.get("password");
+    const btn = e.target.querySelector("button[type=submit]");
+    btn.disabled = true; btn.textContent = "Creating account…";
+    try{
+      await api("/auth/signup", {method:"POST", body:{name, email, password, role:"USER"}, auth:false});
+      toast("Account created — please sign in.", "success");
+      const loginTab = document.querySelector('.auth-tab[data-tab="login"]');
+      if(loginTab) loginTab.click();
+      const emailInput = document.querySelector('#loginForm input[name="email"]');
+      if(emailInput) emailInput.value = email;
+    }catch(err){
+      errEl.textContent = err.message || "Could not create account.";
+      errEl.classList.add("show");
+    }finally{
+      btn.disabled = false; btn.textContent = "Create account";
+    }
+  });
+  return wrap;
+}
+
+/* ============================================================
+   VIEW: DASHBOARD
+   ============================================================ */
+route("/dashboard", async (params, shell)=>{
+  const data = await api("/dashboard/get");
+  const ident = getIdentity() || {};
+
+  const root = h(`<div></div>`);
+
+  root.appendChild(h(`<div class="card card-pad" style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
+    <div>
+      <div class="section-title" style="margin-bottom:2px;">Welcome back${ident.name ? ", " + esc((ident.name.split("@")[0])) : ""}</div>
+      <div class="hint">Here's how your campaigns and contributions are doing.</div>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <button class="btn btn-outline" id="goExplore">${iconCompass}Explore goals</button>
+      <button class="btn btn-primary" id="goCreate">${iconPlus}Start a goal</button>
+    </div>
+  </div>`));
+
+  const stats = h(`<div class="grid grid-4" style="margin-bottom:22px;"></div>`);
+  const statDefs = [
+    {label:"Total contributed", value: money(data.totalContributed), sub:"Across all campaigns you've backed"},
+    {label:"Total received", value: money(data.totalRecived), sub:"Raised across your own goals"},
+    {label:"Active goals", value: data.activeGoalsCount, sub:"Currently accepting contributions"},
+    {label:"Completed / Expired", value: `${data.completedGoalsCount} / ${data.expiredGoalsCount}`, sub:"Finished campaigns"},
+  ];
+  statDefs.forEach(s=>{
+    stats.appendChild(h(`<div class="card stat-card">
+      <div class="stat-label">${esc(s.label)}</div>
+      <div class="stat-value">${s.value}</div>
+      <div class="stat-sub">${esc(s.sub)}</div>
+    </div>`));
+  });
+  root.appendChild(stats);
+
+  const twoCol = h(`<div class="grid grid-2"></div>`);
+  twoCol.appendChild(goalListCard("My goals", data.myGoals, "You haven't started a campaign yet.", "#/my-goals"));
+  twoCol.appendChild(goalListCard("Goals I support", data.supportedGoals, "You haven't backed any campaigns yet.", "#/goals"));
+  root.appendChild(twoCol);
+
+  root.querySelector("#goExplore").addEventListener("click", ()=> navigate("#/goals"));
+  root.querySelector("#goCreate").addEventListener("click", ()=> navigate("#/my-goals?create=1"));
+
+  return root;
+});
+
+function goalListCard(title, goals, emptyMsg, seeAllHref){
+  goals = goals || [];
+  const card = h(`<div class="card card-pad">
+    <div class="section-head">
+      <div class="section-title">${esc(title)}</div>
+      <button class="link-btn" data-href="${seeAllHref}">See all</button>
+    </div>
+    <div id="listInner"></div>
+  </div>`);
+  card.querySelector(".link-btn").addEventListener("click", ()=> navigate(seeAllHref));
+  const inner = card.querySelector("#listInner");
+  if(!goals.length){
+    inner.appendChild(h(`<div class="empty-state" style="padding:26px 10px;">
+      ${iconInbox}
+      <div class="empty-sub">${esc(emptyMsg)}</div>
+    </div>`));
+    return card;
+  }
+  goals.slice(0,4).forEach(g=>{
+    const row = h(`<div style="padding:11px 0; border-top:1px solid var(--line-soft); cursor:pointer;">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+        <div style="min-width:0;">
+          <div style="font-weight:600; font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(g.title)}</div>
+          <div class="hint">${catLabel(g.catagory)}</div>
+        </div>
+        <span class="badge ${statusBadgeClass(g.goalStatus)}">${esc(g.goalStatus)}</span>
+      </div>
+    </div>`);
+    row.style.borderTop = "1px solid var(--line-soft)";
+    row.addEventListener("click", ()=> navigate("#/goal/"+g.id));
+    inner.appendChild(row);
+  });
+  inner.firstElementChild.style.borderTop = "none";
+  return card;
+}
+
+/* ============================================================
+   VIEW: EXPLORE GOALS
+   ============================================================ */
+route("/goals", async (params, shell)=>{
+  const goals = await api("/goals/get");
+  state.goalsCache = goals;
+
+  const root = h(`<div></div>`);
+
+  const controls = h(`<div class="card card-pad" style="margin-bottom:18px; display:flex; flex-wrap:wrap; gap:14px; align-items:center;">
+    <div class="search-bar">
+      ${iconSearch}
+      <input type="text" id="searchInput" placeholder="Search campaigns…">
+    </div>
+    <div class="pill-select" id="catFilter">
+      <div class="pill active" data-val="">All</div>
+      ${CATEGORIES.map(c=>`<div class="pill" data-val="${c}">${catLabel(c)}</div>`).join("")}
+    </div>
+  </div>`);
+  root.appendChild(controls);
+
+  const grid = h(`<div class="grid grid-3" id="goalsGrid"></div>`);
+  root.appendChild(grid);
+
+  let query = "", cat = "";
+  function draw(){
+    const filtered = goals.filter(g=>{
+      const matchesQ = !query || (g.title||"").toLowerCase().includes(query.toLowerCase()) || (g.description||"").toLowerCase().includes(query.toLowerCase());
+      const matchesCat = !cat || g.catagory === cat;
+      return matchesQ && matchesCat;
+    });
+    grid.innerHTML = "";
+    if(!filtered.length){
+      grid.replaceWith(h(`<div class="card"><div class="empty-state">${iconInbox}<div class="empty-title">No campaigns found</div><div class="empty-sub">Try a different search term or category.</div></div></div>`));
+      return;
+    }
+    filtered.forEach(g=> grid.appendChild(goalCard(g)));
+  }
+
+  controls.querySelector("#searchInput").addEventListener("input", (e)=>{ query = e.target.value; draw(); });
+  controls.querySelectorAll("#catFilter .pill").forEach(p=>{
+    p.addEventListener("click", ()=>{
+      controls.querySelectorAll("#catFilter .pill").forEach(x=>x.classList.remove("active"));
+      p.classList.add("active");
+      cat = p.dataset.val;
+      draw();
+    });
+  });
+
+  draw();
+  return root;
+});
+
+function goalCard(g){
+  const card = h(`<div class="card goal-card">
+    <div class="goal-cat">${catLabel(g.catagory)}</div>
+    <div class="goal-title">${esc(g.title)}</div>
+    <div class="goal-desc">${esc(g.description || "No description provided.")}</div>
+    ${gaugeHtml(g.currentAmount, g.targetAmount)}
+    <div class="goal-status-row">
+      <div class="goal-owner">
+        <div class="owner-dot">${esc(initials(g.name))}</div>
+        <span>${esc(g.name || "Unknown")}</span>
+      </div>
+      <span class="badge ${statusBadgeClass(g.goalStatus)}">${esc(g.goalStatus)}</span>
+    </div>
+  </div>`);
+  card.addEventListener("click", ()=> navigate("#/goal/"+g.id));
+  return card;
+}
+
+/* ============================================================
+   VIEW: GOAL DETAIL
+   ============================================================ */
+route("/goal/:id", async (params, shell)=>{
+  const id = params.id;
+  const [goalRes, progress, contributors] = await Promise.allSettled([
+    api("/goals/get/"+id),
+    api("/analytics/getProgress/"+id),
+    api("/contribute/contrisToGoal/"+id),
+  ]);
+
+  if(goalRes.status !== "fulfilled" || !goalRes.value){
+    return h(`<div class="card"><div class="empty-state">${iconAlert}<div class="empty-title">Goal not found</div><div class="empty-sub">This campaign may have been removed.</div></div></div>`);
+  }
+  const goal = goalRes.value;
+  const prog = progress.status === "fulfilled" ? progress.value : null;
+  const contribs = contributors.status === "fulfilled" ? contributors.value : [];
+
+  const root = h(`<div></div>`);
+  root.appendChild(h(`<div class="back-link" id="backLink">${iconArrowLeft} Back to goals</div>`));
+  root.querySelector("#backLink").addEventListener("click", ()=> history.length > 1 ? history.back() : navigate("#/goals"));
+
+  const hero = h(`<div class="card detail-hero" style="margin-bottom:18px;">
+    <div class="detail-top">
+      <div>
+        <div class="goal-cat">${catLabel(goal.catagory)}</div>
+        <div class="detail-title">${esc(goal.title)}</div>
+      </div>
+      <span class="badge ${statusBadgeClass(goal.goalStatus)}" style="font-size:12px; padding:5px 12px;">${esc(goal.goalStatus)}</span>
+    </div>
+    <div class="detail-desc">${esc(goal.description || "No description provided.")}</div>
+    ${gaugeHtml(goal.currentAmount, goal.targetAmount)}
+    <div class="kpi-row">
+      <div class="kpi"><b>${prog ? prog.contributorsCount : contribs.length}</b><span>Contributors</span></div>
+      <div class="kpi"><b>${money(prog ? Math.round(prog.averageContribution) : 0)}</b><span>Avg. contribution</span></div>
+      <div class="kpi"><b>${money(prog ? prog.largestContribution : 0)}</b><span>Largest contribution</span></div>
+      <div class="kpi"><b>${fmtDate(goal.targetDate)}</b><span>Target date</span></div>
+    </div>
+    <div class="divider"></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+      <div class="goal-owner"><div class="owner-dot">${esc(initials(goal.name))}</div><span>Organized by <b>${esc(goal.name||"—")}</b> · ${esc(goal.email||"")}</span></div>
+      <button class="btn btn-primary" id="contributeBtn">${iconHeart} Contribute now</button>
+    </div>
+  </div>`);
+  root.appendChild(hero);
+
+  hero.querySelector("#contributeBtn").addEventListener("click", ()=> openContributeModal(goal, ()=> render()));
+
+  const contribCard = h(`<div class="card card-pad">
+    <div class="section-title">Recent contributors</div>
+    <div id="contribList"></div>
+  </div>`);
+  const listEl = contribCard.querySelector("#contribList");
+  if(!contribs.length){
+    listEl.appendChild(h(`<div class="empty-state" style="padding:30px 10px;">${iconInbox}<div class="empty-sub">No contributions yet — be the first to support this goal.</div></div>`));
+  }else{
+    contribs.slice().sort((a,b)=> b.amount - a.amount).forEach(c=>{
+      listEl.appendChild(h(`<div class="contributor-row">
+        <div class="owner-dot">${esc(initials(c.contributorName))}</div>
+        <div style="flex:1;">
+          <div style="font-weight:600; font-size:13px;">${esc(c.contributorName||"Anonymous")}</div>
+          <div class="hint">${fmtDate(c.contributedAt)}</div>
+        </div>
+        <div class="num" style="font-weight:600;">${money(c.amount)}</div>
+      </div>`));
+    });
+  }
+  root.appendChild(contribCard);
+
+  return root;
+});
+
+function openContributeModal(goal, onDone){
+  const body = h(`<div>
+    <div class="form-error" id="contribErr"></div>
+    <div class="hint" style="margin-bottom:14px;">Contributing to <b>${esc(goal.title)}</b></div>
+    <form id="contribForm">
+      <div class="field">
+        <label>Amount (₹)</label>
+        <input type="number" name="amount" min="1" step="1" required placeholder="e.g. 500" autofocus>
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">${iconHeart} Confirm contribution</button>
+    </form>
+  </div>`);
+
+  const modal = openModal("Contribute", body);
+
+  body.querySelector("#contribForm").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    const errEl = body.querySelector("#contribErr");
+    errEl.classList.remove("show");
+    const fd = new FormData(e.target);
+    const amount = fd.get("amount");
+    const btn = e.target.querySelector("button[type=submit]");
+    btn.disabled = true; btn.textContent = "Processing…";
+    try{
+      await api("/contribute", {method:"POST", body:{amount, goal_id: goal.id}});
+      toast("Thank you — your contribution was recorded!", "success");
+      modal.close();
+      if(onDone) onDone();
+    }catch(err){
+      errEl.textContent = err.message || "Could not process contribution.";
+      errEl.classList.add("show");
+    }finally{
+      btn.disabled = false; btn.textContent = "Confirm contribution";
+    }
+  });
+}
+
+/* ============================================================
+   VIEW: MY GOALS
+   ============================================================ */
+route("/my-goals", async (params, shell)=>{
+  const goals = await api("/goals/getMyGoals");
+  const root = h(`<div></div>`);
+
+  const head = h(`<div style="display:flex; justify-content:flex-end; margin-bottom:16px;">
+    <button class="btn btn-primary" id="createGoalBtn">${iconPlus} Start a new goal</button>
+  </div>`);
+  root.appendChild(head);
+
+  if(!goals.length){
+    root.appendChild(h(`<div class="card"><div class="empty-state">
+      ${iconFlag}
+      <div class="empty-title">No campaigns yet</div>
+      <div class="empty-sub">Create your first fundraising goal to start collecting contributions.</div>
+    </div></div>`));
+  }else{
+    const grid = h(`<div class="grid grid-3"></div>`);
+    goals.forEach(g=> grid.appendChild(myGoalCard(g)));
+    root.appendChild(grid);
+  }
+
+  head.querySelector("#createGoalBtn").addEventListener("click", ()=> openGoalFormModal(null, ()=> render()));
+
+  if(location.hash.includes("create=1")){
+    setTimeout(()=> openGoalFormModal(null, ()=> render()), 30);
+  }
+
+  return root;
+});
+
+function myGoalCard(g){
+  const card = h(`<div class="card goal-card" style="cursor:default;">
+    <div class="goal-cat">${catLabel(g.catagory)}</div>
+    <div class="goal-title">${esc(g.title)}</div>
+    <div class="goal-desc">${esc(g.description || "No description provided.")}</div>
+    ${gaugeHtml(g.currentAmount, g.targetAmount)}
+    <div class="goal-status-row">
+      <span class="badge ${statusBadgeClass(g.goalStatus)}">${esc(g.goalStatus)}</span>
+      <div style="display:flex; gap:6px;">
+        <button class="btn btn-outline btn-sm" data-act="view">View</button>
+        <button class="btn btn-outline btn-sm" data-act="edit">${iconEdit}</button>
+        <button class="btn btn-danger btn-sm" data-act="delete">${iconTrash}</button>
+      </div>
+    </div>
+  </div>`);
+  card.querySelector('[data-act="view"]').addEventListener("click", (e)=>{ e.stopPropagation(); navigate("#/goal/"+g.id); });
+  card.querySelector('[data-act="edit"]').addEventListener("click", (e)=>{ e.stopPropagation(); openGoalFormModal(g, ()=> render()); });
+  card.querySelector('[data-act="delete"]').addEventListener("click", async (e)=>{
+    e.stopPropagation();
+    if(!confirm(`Delete "${g.title}"? This cannot be undone.`)) return;
+    try{
+      await api("/goals/delete/"+g.id, {method:"DELETE"});
+      toast("Goal deleted.", "success");
+      render();
+    }catch(err){
+      toast(err.message || "Could not delete goal.", "error");
+    }
+  });
+  return card;
+}
+
+function openGoalFormModal(existing, onDone){
+  const isEdit = !!existing;
+  const body = h(`<div>
+    <div class="form-error" id="goalErr"></div>
+    <form id="goalForm">
+      <div class="field">
+        <label>Title</label>
+        <input type="text" name="title" required maxlength="120" value="${existing?esc(existing.title):''}" placeholder="e.g. New laptop for coursework">
+      </div>
+      <div class="field">
+        <label>Description</label>
+        <textarea name="description" required maxlength="600" placeholder="What is this campaign for?">${existing?esc(existing.description):''}</textarea>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Category</label>
+          <select name="catagory">
+            ${CATEGORIES.map(c=>`<option value="${c}" ${existing && existing.catagory===c?'selected':''}>${catLabel(c)}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field">
+          <label>Target amount (₹)</label>
+          <input type="number" name="targetAmount" min="1" required value="${existing?existing.targetAmount:''}" placeholder="10000">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Target date</label>
+          <input type="date" name="targetDate" required value="${existing && existing.targetDate ? existing.targetDate : ''}">
+        </div>
+        ${isEdit ? '' : `
+        <div class="field">
+          <label>Starting amount (₹)</label>
+          <input type="number" name="currentAmount" min="0" value="0">
+        </div>`}
+      </div>
+      ${isEdit ? '' : `
+      <div class="field">
+        <label>Status</label>
+        <select name="goalStatus">
+          ${STATUSES.map(s=>`<option value="${s}" ${s==='ACTIVE'?'selected':''}>${s.charAt(0)+s.slice(1).toLowerCase()}</option>`).join("")}
+        </select>
+      </div>`}
+      <button class="btn btn-primary btn-block" type="submit">${isEdit ? "Save changes" : "Create goal"}</button>
+    </form>
+  </div>`);
+
+  const modal = openModal(isEdit ? "Edit goal" : "Start a new goal", body);
+
+  body.querySelector("#goalForm").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    const errEl = body.querySelector("#goalErr");
+    errEl.classList.remove("show");
+    const fd = new FormData(e.target);
+    const btn = e.target.querySelector("button[type=submit]");
+    btn.disabled = true; btn.textContent = isEdit ? "Saving…" : "Creating…";
+    try{
+      if(isEdit){
+        await api("/goals/update/"+existing.id, {method:"PUT", body:{
+          title: fd.get("title"), description: fd.get("description"),
+          catagory: fd.get("catagory"), targetAmount: fd.get("targetAmount"),
+          targetDate: fd.get("targetDate")
+        }});
+        toast("Goal updated.", "success");
+      }else{
+        await api("/goals/create", {method:"POST", body:{
+          title: fd.get("title"), description: fd.get("description"),
+          catagory: fd.get("catagory"), targetAmount: fd.get("targetAmount"),
+          currentAmount: fd.get("currentAmount") || 0,
+          targetDate: fd.get("targetDate"), goalStatus: fd.get("goalStatus")
+        }});
+        toast("Goal created!", "success");
+      }
+      modal.close();
+      if(onDone) onDone();
+    }catch(err){
+      errEl.textContent = err.message || "Could not save goal.";
+      errEl.classList.add("show");
+    }finally{
+      btn.disabled = false; btn.textContent = isEdit ? "Save changes" : "Create goal";
+    }
+  });
+
+  return modal;
+}
+
+/* ============================================================
+   VIEW: MY CONTRIBUTIONS
+   ============================================================ */
+route("/my-contributions", async ()=>{
+  const list = await api("/contribute/myContributions");
+  const root = h(`<div></div>`);
+
+  if(!list.length){
+    root.appendChild(h(`<div class="card"><div class="empty-state">
+      ${iconHeart}
+      <div class="empty-title">No contributions yet</div>
+      <div class="empty-sub">When you back a campaign, it'll show up here.</div>
+    </div></div>`));
+    return root;
+  }
+
+  const total = list.reduce((s,c)=> s + Number(c.amount||0), 0);
+  const stats = h(`<div class="grid grid-3" style="margin-bottom:18px;">
+    <div class="card stat-card"><div class="stat-label">Total contributed</div><div class="stat-value">${money(total)}</div></div>
+    <div class="card stat-card"><div class="stat-label">Campaigns backed</div><div class="stat-value">${new Set(list.map(c=>c.goalId)).size}</div></div>
+    <div class="card stat-card"><div class="stat-label">Contributions made</div><div class="stat-value">${list.length}</div></div>
+  </div>`);
+  root.appendChild(stats);
+
+  const card = h(`<div class="card card-pad">
+    <div class="section-title">History</div>
+    <table class="table-simple">
+      <thead><tr><th>Goal</th><th>Amount</th><th>Date</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>`);
+  const tbody = card.querySelector("tbody");
+  list.slice().sort((a,b)=> new Date(b.contributedAt) - new Date(a.contributedAt)).forEach(c=>{
+    const row = h(`<tr style="cursor:pointer;">
+      <td>${esc(c.goalTitle)}</td>
+      <td class="num">${money(c.amount)}</td>
+      <td>${fmtDate(c.contributedAt)}</td>
+    </tr>`);
+    row.addEventListener("click", ()=> navigate("#/goal/"+c.goalId));
+    tbody.appendChild(row);
+  });
+  root.appendChild(card);
+  return root;
+});
+
+/* ============================================================
+   VIEW: ANALYTICS
+   ============================================================ */
+route("/analytics", async ()=>{
+  const [topFundedR, topContribR, byCatR] = await Promise.allSettled([
+    api("/analytics/getTopFunded"),
+    api("/analytics/getTopContributors"),
+    api("/analytics/getGoalsByCatagory"),
+  ]);
+  const topFunded = topFundedR.status==="fulfilled" ? topFundedR.value : [];
+  const topContrib = topContribR.status==="fulfilled" ? topContribR.value : [];
+  const byCat = byCatR.status==="fulfilled" ? byCatR.value : [];
+
+  const root = h(`<div></div>`);
+
+  const grid = h(`<div class="grid grid-2"></div>`);
+
+  // Top funded
+  const fundedCard = h(`<div class="card card-pad">
+    <div class="section-title">Top funded goals</div>
+    <div id="fundedList"></div>
+  </div>`);
+  const fList = fundedCard.querySelector("#fundedList");
+  if(!topFunded.length){
+    fList.appendChild(h(`<div class="empty-state" style="padding:26px 10px;">${iconInbox}<div class="empty-sub">No data yet.</div></div>`));
+  }else{
+    topFunded.slice(0,8).forEach((g,i)=>{
+      const row = h(`<div class="contributor-row" style="cursor:pointer;">
+        <span class="rank-badge ${i===0?'gold':''}">${i+1}</span>
+        <div style="flex:1; min-width:0;">
+          <div style="font-weight:600; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(g.title)}</div>
+          <div class="hint">${catLabel(g.catagory)}</div>
+        </div>
+        <div class="num" style="font-weight:600;">${money(g.currentAmount)}</div>
+      </div>`);
+      row.addEventListener("click", ()=> navigate("#/goal/"+g.id));
+      fList.appendChild(row);
+    });
+  }
+  grid.appendChild(fundedCard);
+
+  // Top contributors
+  const contribCard = h(`<div class="card card-pad">
+    <div class="section-title">Top contributors</div>
+    <div id="contribRankList"></div>
+  </div>`);
+  const cList = contribCard.querySelector("#contribRankList");
+  if(!topContrib.length){
+    cList.appendChild(h(`<div class="empty-state" style="padding:26px 10px;">${iconInbox}<div class="empty-sub">No data yet.</div></div>`));
+  }else{
+    topContrib.slice(0,8).forEach((c,i)=>{
+      cList.appendChild(h(`<div class="contributor-row">
+        <span class="rank-badge ${i===0?'gold':''}">${i+1}</span>
+        <div style="flex:1; min-width:0;">
+          <div style="font-weight:600; font-size:13px;">${esc(c.name)}</div>
+        </div>
+        <div class="num" style="font-weight:600;">${money(c.totalContributed)}</div>
+      </div>`));
+    });
+  }
+  grid.appendChild(contribCard);
+
+  root.appendChild(grid);
+
+  // By category
+  const catCard = h(`<div class="card card-pad" style="margin-top:16px;">
+    <div class="section-title">Goals by category</div>
+    <div id="catList"></div>
+  </div>`);
+  const catListEl = catCard.querySelector("#catList");
+  if(!byCat.length){
+    catListEl.appendChild(h(`<div class="empty-state" style="padding:26px 10px;">${iconInbox}<div class="empty-sub">No data yet.</div></div>`));
+  }else{
+    const max = Math.max(...byCat.map(c=>c.goalCount), 1);
+    byCat.slice().sort((a,b)=> b.goalCount - a.goalCount).forEach(c=>{
+      catListEl.appendChild(h(`<div class="category-bar-row">
+        <div class="cat-name">${catLabel(c.catagory)}</div>
+        <div class="category-bar-track"><div class="category-bar-fill" style="width:${(c.goalCount/max)*100}%"></div></div>
+        <div class="category-bar-count">${c.goalCount}</div>
+      </div>`));
+    });
+  }
+  root.appendChild(catCard);
+
+  return root;
+});
+
+/* ============================================================
+   VIEW: PROFILE
+   ============================================================ */
+route("/profile", async ()=>{
+  const ident = getIdentity() || {};
+  const root = h(`<div class="grid grid-2"></div>`);
+
+  const form = h(`<div class="card card-pad">
+    <div class="section-title">Account details</div>
+    <div class="form-error" id="profileErr"></div>
+    <form id="profileForm">
+      <div class="field">
+        <label>Full name</label>
+        <input type="text" name="name" value="${esc(ident.name && ident.name.includes('@') ? '' : (ident.name||''))}" placeholder="Your name" required>
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" name="email" value="${esc(ident.email||'')}" placeholder="you@example.com" required>
+      </div>
+      <button class="btn btn-primary" type="submit">Save changes</button>
+    </form>
+  </div>`);
+
+  form.querySelector("#profileForm").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    const errEl = form.querySelector("#profileErr");
+    errEl.classList.remove("show");
+    const fd = new FormData(e.target);
+    const name = fd.get("name"), email = fd.get("email");
+    const btn = e.target.querySelector("button[type=submit]");
+    btn.disabled = true; btn.textContent = "Saving…";
+    try{
+      await api("/users/update", {method:"POST", body:{name, email}});
+      setIdentity({name, email});
+      toast("Profile updated.", "success");
+      render();
+    }catch(err){
+      errEl.textContent = err.message || "Could not update profile.";
+      errEl.classList.add("show");
+    }finally{
+      btn.disabled = false; btn.textContent = "Save changes";
+    }
+  });
+
+  const info = h(`<div class="card card-pad">
+    <div class="section-title">Session</div>
+    <p class="hint" style="line-height:1.6;">You're signed in to Fundwell. Signing out will clear your session token from this browser. You'll need to sign in again to view your goals and contributions.</p>
+    <button class="btn btn-outline" id="profileLogout">${iconLogout} Sign out</button>
+  </div>`);
+  info.querySelector("#profileLogout").addEventListener("click", ()=>{
+    clearAuth();
+    navigate("#/login");
+  });
+
+  root.appendChild(form);
+  root.appendChild(info);
+  return root;
+});
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+render();
+
+})();
+</script>
+</body>
+</html>
